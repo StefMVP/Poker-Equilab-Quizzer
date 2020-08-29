@@ -1,11 +1,12 @@
 import random
+import file_handler
+import os
 
 
 def get_range_from_equilab_format(logger, range, hand):
     try:
         logger.debug("Entering get_range_from_equilab_format {} {}".format(range, hand))
-        cleaned_range = range.split('{')[1].split('}')[0]
-        split = cleaned_range.split(',')
+        split = range.replace('{', '').replace('}', '').split(',')
 
         final = []
         cur = []
@@ -73,25 +74,25 @@ def get_range_percent_from_hand(logger, range, hand):
                     if is_hand_range_paired(logger, hand_range):
                         if hand_range[0] == hand[0][0]:
                             logger.debug("Paired hand equal {} {}".format(hand_range, hand, percent))
-                            return percent
-                        elif hand_range[0] < hand[0][0] and hand_range[-1] == "+":
+                            return int(percent)
+                        elif get_card_int_rank(hand_range[1]) < get_card_int_rank(hand[1][0]) and hand_range[-1] == "+":
                             logger.debug("Paired hand included {} {} {}".format(hand_range, hand, percent))
-                            return percent
+                            return int(percent)
                 else:
                     if is_hand_range_suited(logger, hand_range):
-                        if hand_range[0] == hand[0][0] and hand_range[1][0] == hand[1][0] and is_hand_suited(logger, hand):
+                        if hand_range[0] == hand[0] and hand_range[1] == hand[1][0] and is_hand_suited(logger, hand):
                             logger.debug("Suited hand equal {} {} {}".format(hand_range, hand, percent))
-                            return percent
-                        if hand_range[0] == hand[0][0] and hand_range[1][0] < hand[1][0] and hand_range[-1] == "+" and is_hand_suited(logger, hand):
+                            return int(percent)
+                        if hand_range[0] == hand[0] and get_card_int_rank(hand_range[1]) < get_card_int_rank(hand[1][0]) and hand_range[-1] == "+" and is_hand_suited(logger, hand):
                             logger.debug("Suited hand included {} {} {}".format(hand_range, hand, percent))
-                            return percent
+                            return int(percent)
                     else:
-                        if hand_range[0] == hand[0][0] and hand_range[1][0] == hand[1][0]:
+                        if hand_range[0] == hand[0][0] and hand_range[1] == hand[1][0]:
                             logger.debug("Hand equal {} {} {}".format(hand_range, hand, percent))
-                            return percent
-                        if hand_range[0] == hand[0][0] and hand_range[1][0] < hand[1][0] and hand_range[-1] == "+":
+                            return int(percent)
+                        if hand_range[0] == hand[0][0] and get_card_int_rank(hand_range[1]) < get_card_int_rank(hand[1][0]) and hand_range[-1] == "+":
                             logger.debug("Hand included {} {} {}".format(hand_range, hand, percent))
-                            return percent
+                            return int(percent)
         logger.debug("Not Found {} {}".format(hand, 0))
         return 0
 
@@ -116,11 +117,15 @@ def get_random_card(logger, exclude_cards):
     return hand
 
 
+def get_card_int_rank(card):
+    str_ranks = '23456789TJQKA'
+    int_ranks = range(13)
+    char_rank_to_int_rank = dict(zip(list(str_ranks), int_ranks))
+    return char_rank_to_int_rank[card[0]]
+
+
 def sort_cards(logger, cards):
-    STR_RANKS = '23456789TJQKA'
-    INT_RANKS = range(13)
-    CHAR_RANK_TO_INT_RANK = dict(zip(list(STR_RANKS), INT_RANKS))
-    if CHAR_RANK_TO_INT_RANK[cards[0][0]] < CHAR_RANK_TO_INT_RANK[cards[1][0]]:
+    if get_card_int_rank(cards[0][0]) < get_card_int_rank(cards[1][0]):
         temp = cards[0]
         cards[0] = cards[1]
         cards[1] = temp
@@ -143,8 +148,134 @@ def get_random_hand(logger, number_cards):
     return cards
 
 
+def get_ranges_from_equilab_ini(logger, path):
+    file = file_handler.open_file(logger, path)
+    file = file.split('\n')
+    ranges = []
+    depth_1 = ''
+    depth_2 = ''
+    depth_3 = ''
+    index = 1
+    for line in file:
+        if not line.startswith('.'):
+            continue
+        elif '{' not in line and '}' not in line:
+            num_periods = line.count('.')
+            line = line.replace('.', '')
+            if num_periods == 1:
+                depth_1 = line
+                depth_2 = ''
+                depth_3 = ''
+            if num_periods == 2:
+                depth_2 = line
+                depth_3 = ''
+            if num_periods == 3:
+                depth_3 = line
+        else:
+            split_arr = line.replace('.', '').split(' {')
+            title = (depth_1 + ':' + depth_2 + ':' + depth_3 + ':' + split_arr[0]).replace('::', ':')
+            range = split_arr[1]
+            ranges.append([index, title, range])
+            index = index + 1
+    return ranges
+
+
+def console_select_range(logger, ranges):
+    try:
+        selection = -1
+        while True:
+            for range in ranges:
+                print(range)
+            print("Please select a range by number: ")
+            selection = int(input())
+            if not selection or selection >= len(ranges):
+                continue
+            else:
+                break
+        logger.debug("Selected range {}".format(ranges[selection-1]))
+        return ranges[selection-1]
+    except Exception as e:
+        logger.exception(e)
+        console_select_range(logger, ranges)
+
+
+def get_str_from_list_hand(hand_arr):
+    return '{}{}-{}{}'.format(hand_arr[0][0], hand_arr[0][1], hand_arr[1][0], hand_arr[1][1])
+
+
+def main_loop(logger, const, config, ranges):
+    try:
+        selected_range = console_select_range(logger, ranges)
+        wrong_hands = []
+        correct = 0
+        total = 0
+        while True:
+            hand = get_random_hand(logger, const.NumberCards)
+            #hand = ['AS','KH']
+            percent = get_range_percent_from_hand(logger, selected_range[2], hand)
+            os.system(const.ClearCommand)
+            print('---------------------------------')
+            print('{}'.format(selected_range[1]))
+            if total != 0:
+                print("Total: {} / {} ({}%)".format(correct, total, round((correct/total)*100), 2))
+            if wrong_hands:
+                print("Wrong Hands: {}".format(wrong_hands))
+            print('---------------------------------')
+            print('1: Infrequent (0%-25%)')
+            print('2: Sometimes (25%-75%)')
+            print('3: Frequent (75%-100%)')
+            print("Hand: {}".format(get_str_from_list_hand(hand)))
+            try:
+                answer = int(input())
+            except:
+                continue
+            os.system(const.ClearCommand)
+            print('---------------------------------')
+            print('{}'.format(selected_range[1]))
+            if total != 0:
+                print("Total: {} / {} ({}%)".format(correct, total, round((correct/total)*100), 2))
+            if wrong_hands:
+                print("Wrong Hands: {}".format(wrong_hands))
+            print('---------------------------------')
+            print("Hand: {}".format(get_str_from_list_hand(hand)))
+            if answer == 0:
+                os.system(const.ClearCommand)
+                wrong_hands = []
+                correct = 0
+                total = 0
+                selected_range = console_select_range(logger, ranges)
+                continue
+            elif answer == 1:
+                if percent > 25:
+                    print("Incorrect - Exact:{}%".format(percent))
+                    wrong_hands.append(get_str_from_list_hand(hand))
+                else:
+                    print("Correct - Infrequent - Exact:{}%".format(percent))
+                    correct = correct + 1
+            elif answer == 2:
+                if percent < 25 or percent > 75:
+                    print("Incorrect - Exact:{}%".format(percent))
+                    wrong_hands.append(get_str_from_list_hand(hand))
+                else:
+                    print("Correct - Sometimes - Exact:{}%".format(percent))
+                    correct = correct + 1
+            elif answer == 3:
+                if percent < 75:
+                    print("Incorrect - Exact:{}%".format(percent))
+                    wrong_hands.append(get_str_from_list_hand(hand))
+                else:
+                    print("Correct - Frequent - Exact:{}%".format(percent))
+                    correct = correct + 1
+            else:
+                continue
+            total = total + 1
+
+            input("Press any key...")
+    except Exception as e:
+        logger.exception(e)
+        main_loop(logger, const, config, ranges)
+
+
 def main(logger, const, config):
-    range = '...BU {100:22+,A2s+,K2s+,Q3s+,J4s+,T6s+,96s+,86s+,75s+,64s+,54s,A5o+,K9o+,Q9o+,J9o+,T8o+,24:A4o,92:K8o,19:J8o,84:98o,98:85s,7:Q2s}'
-    number_cards = 2
-    hand = get_random_hand(logger, number_cards)
-    get_range_percent_from_hand(logger, range, hand)
+    ranges = get_ranges_from_equilab_ini(logger, config.RangePath)
+    main_loop(logger, const, config, ranges)

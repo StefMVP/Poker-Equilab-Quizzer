@@ -1,3 +1,4 @@
 {
-    "LogLevel": "DEBUG"
+    "LogLevel": "DEBUG",
+    "RangePath": "../PreflopUserDefined.ini"
 }
