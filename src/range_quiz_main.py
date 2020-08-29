@@ -80,10 +80,10 @@ def get_range_percent_from_hand(logger, range, hand):
                             return int(percent)
                 else:
                     if is_hand_range_suited(logger, hand_range):
-                        if hand_range[0] == hand[0] and hand_range[1] == hand[1][0] and is_hand_suited(logger, hand):
+                        if hand_range[0] == hand[0][0] and hand_range[1] == hand[1][0] and is_hand_suited(logger, hand):
                             logger.debug("Suited hand equal {} {} {}".format(hand_range, hand, percent))
                             return int(percent)
-                        if hand_range[0] == hand[0] and get_card_int_rank(hand_range[1]) < get_card_int_rank(hand[1][0]) and hand_range[-1] == "+" and is_hand_suited(logger, hand):
+                        if hand_range[0] == hand[0][0] and get_card_int_rank(hand_range[1]) < get_card_int_rank(hand[1][0]) and hand_range[-1] == "+" and is_hand_suited(logger, hand):
                             logger.debug("Suited hand included {} {} {}".format(hand_range, hand, percent))
                             return int(percent)
                     else:
@@ -211,7 +211,7 @@ def main_loop(logger, const, config, ranges):
         total = 0
         while True:
             hand = get_random_hand(logger, const.NumberCards)
-            #hand = ['AS','KH']
+            #hand = ['AD','9D'] #Leave for testing
             percent = get_range_percent_from_hand(logger, selected_range[2], hand)
             os.system(const.ClearCommand)
             print('---------------------------------')
