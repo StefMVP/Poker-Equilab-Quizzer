@@ -102,7 +102,7 @@ def get_range_percent_from_hand(logger, range, hand):
 
 
 def get_random_card(logger, exclude_cards):
-    suits = ['S', 'H', 'D', 'C']
+    suits = ['s', 'h', 'd', 'c']
     faces = ['A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K']
     while True:
         chosen_face = random.choice(faces)
