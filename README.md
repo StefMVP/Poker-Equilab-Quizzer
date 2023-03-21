@@ -1,6 +1,7 @@
 # Tool Overview
 
 This tool has been created to facilitate the creation of custom Power Equilab ranges and provide an easy way to quiz yourself until the ranges become second nature.
+![Gif](img/poker-quizzer.gif)
 
 ## Configuration
 
