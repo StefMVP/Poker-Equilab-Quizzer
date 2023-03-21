@@ -140,6 +140,7 @@ def get_random_hand(logger, number_cards):
 
     for i in range(0, number_cards):
         card = get_random_card(logger, excluded_cards)
+        excluded_cards.append(card)
         cards.append(card)
 
     cards = sort_cards(logger, cards)
@@ -182,18 +183,25 @@ def get_ranges_from_equilab_ini(logger, path):
 
 def console_select_range(logger, ranges):
     try:
-        selection = -1
         while True:
             for range in ranges:
                 print(range)
-            print("Please select a range by number: ")
-            selection = int(input())
-            if not selection or selection >= len(ranges):
-                continue
-            else:
-                break
-        logger.debug("Selected range {}".format(ranges[selection-1]))
-        return ranges[selection-1]
+            print("Please select a range by number, comma delimited, or *: ")
+            selection = input()
+            if selection == "*":
+                return ranges
+            selection = selection.split(',')
+            final_ranges = []
+            for select in selection:
+                try:
+                    select = int(select)
+                    final_ranges.append(ranges[int(select)])
+                except:
+                    for range in ranges:
+                        if select.lower() in range[1].lower():
+                            final_ranges.append(range)
+                #return [ranges[selection - 1]]
+            return final_ranges
     except Exception as e:
         logger.exception(e)
         console_select_range(logger, ranges)
@@ -205,11 +213,12 @@ def get_str_from_list_hand(hand_arr):
 
 def main_loop(logger, const, config, ranges):
     try:
-        selected_range = console_select_range(logger, ranges)
+        selected_ranges = console_select_range(logger, ranges)
         wrong_hands = []
         correct = 0
         total = 0
         while True:
+            selected_range = random.choice(selected_ranges)
             hand = get_random_hand(logger, const.NumberCards)
             #hand = ['AD','9D'] #Leave for testing
             percent = get_range_percent_from_hand(logger, selected_range[2], hand)
@@ -224,6 +233,7 @@ def main_loop(logger, const, config, ranges):
             print('1: Infrequent (0%-25%)')
             print('2: Sometimes (25%-75%)')
             print('3: Frequent (75%-100%)')
+            print('0: Back to main menu')
             print("Hand: {}".format(get_str_from_list_hand(hand)))
             try:
                 answer = int(input())
@@ -279,3 +289,15 @@ def main_loop(logger, const, config, ranges):
 def main(logger, const, config):
     ranges = get_ranges_from_equilab_ini(logger, config.RangePath)
     main_loop(logger, const, config, ranges)
+
+    #print("           %%%     %%%")
+    #print("      %%%       D      %%%")
+    #print("    %%%                     %%%")
+    #print("  %%%  CO                 SB  %%%")
+    #print(" %%%                           %%%")
+    #print(" %%%                           %%%")
+    #print("  %%%  HJ                 BB  %%%")
+    #print("    %%%                     %%%")
+    #print("      %%%       LJ     %%%")
+    #print("           %%%     %%%")
+
